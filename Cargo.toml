@@ -1,0 +1,6 @@
+[package]
+name = "just_in_time_game"
+version = "0.1.0"
+authors = ["Bernd Amend <bernd.amend@gmail.com>"]
+
+[dependencies]
