@@ -1,7 +1,7 @@
 use std::fmt;
-use std::str::FromStr;
 use std::fs::File;
 use std::io::prelude::*;
+use std::str::FromStr;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 enum PieceState {
@@ -84,9 +84,9 @@ impl FromStr for Piece {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let lines: Vec<&str> = s.split_terminator("\n").collect();
+        let lines: Vec<&str> = s.split_terminator('\n').collect();
 
-        if lines.len() < 1 {
+        if lines.is_empty() {
             return Err("id and at least one line are required");
         }
 
@@ -117,12 +117,16 @@ impl fmt::Display for Piece {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for e in self.field.iter().enumerate() {
             if e.0 % self.width == 0 && e.0 != 0 {
-                write!(f, "\n")?;
+                writeln!(f)?;
             }
-            write!(f, "{}", match *e.1 {
-                PieceState::Free => " ",
-                PieceState::Occupied => "X",
-            })?;
+            write!(
+                f,
+                "{}",
+                match *e.1 {
+                    PieceState::Free => " ",
+                    PieceState::Occupied => "X",
+                }
+            )?;
         }
         Ok(())
     }
@@ -155,9 +159,11 @@ impl Field {
     }
 
     fn count(&self) -> u8 {
-        self.field.iter().fold(0u8, |acc, field| acc + match field {
-            &FieldState::Free(score) => score,
-            _ => 0,
+        self.field.iter().fold(0u8, |acc, field| {
+            acc + match *field {
+                FieldState::Free(score) => score,
+                _ => 0,
+            }
         })
     }
 }
@@ -180,7 +186,7 @@ impl<'a> Iterator for PlaceIterator<'a> {
                 return None; // and we're done
             }
 
-            self.x = self.x + 1;
+            self.x += 1;
 
             if self.x > self.field.width - self.piece.width {
                 self.x = 0;
@@ -193,9 +199,14 @@ impl<'a> Iterator for PlaceIterator<'a> {
                 for piece_y in 0..self.piece.height {
                     let field_x = field_offset_x + piece_x;
                     let field_y = field_offset_y + piece_y;
-                    if self.piece.field[piece_x + piece_y * self.piece.width] == PieceState::Occupied {
+                    if self.piece.field[piece_x + piece_y * self.piece.width]
+                        == PieceState::Occupied
+                    {
                         match ret.field[field_x + field_y * ret.width].clone() {
-                            FieldState::Free(_) => ret.field[field_x + field_y * ret.width] = FieldState::Occupied(self.piece.id),
+                            FieldState::Free(_) => {
+                                ret.field[field_x + field_y * ret.width] =
+                                    FieldState::Occupied(self.piece.id)
+                            }
                             _ => continue 'main,
                         }
                     }
@@ -211,11 +222,11 @@ impl FromStr for Field {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let lines: Vec<&str> = s.split_terminator("\n").collect();
+        let lines: Vec<&str> = s.split_terminator('\n').collect();
         let width = lines.iter().fold(0, |a, b| a.max(b.len()));
 
         let mut result = Field {
-            width: width,
+            width,
             height: lines.len(),
             field: vec![FieldState::Blocked; width * lines.len()],
         };
@@ -225,7 +236,7 @@ impl FromStr for Field {
                 result.field[line.0 * width + element.0] = match element.1 {
                     ' ' => FieldState::Blocked,
                     '-' => FieldState::Free(0),
-                    e @ '1' ... '9' => FieldState::Free(e as u8 - '1' as u8 + 1),
+                    e @ '1'...'9' => FieldState::Free(e as u8 - b'1' + 1),
                     _ => return Err("unexpected character"),
                 }
             }
@@ -239,13 +250,13 @@ impl fmt::Display for Field {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for e in self.field.iter().enumerate() {
             if e.0 % self.width == 0 && e.0 != 0 {
-                write!(f, "\n")?;
+                writeln!(f)?;
             }
             match *e.1 {
                 FieldState::Blocked => write!(f, " "),
                 FieldState::Free(0) => write!(f, "-"),
                 FieldState::Free(n) => write!(f, "{}", n),
-                FieldState::Occupied(n) => write!(f, "{}", ('A' as u8 + n) as char),
+                FieldState::Occupied(n) => write!(f, "{}", (b'A' + n) as char),
             }?;
         }
         Ok(())
@@ -294,9 +305,11 @@ impl Solution {
 
     fn best_solutions(&self) -> Vec<Field> {
         let highest_score = self.highest_score();
-        self.solutions.iter().filter(|field| {
-            field.count() == highest_score
-        }).cloned().collect()
+        self.solutions
+            .iter()
+            .filter(|field| field.count() == highest_score)
+            .cloned()
+            .collect()
     }
 }
 
@@ -319,7 +332,8 @@ fn main() {
     {
         let mut content = String::new();
         let mut file = File::open(field_filename).expect("couldn't open field file");
-        file.read_to_string(&mut content).expect("couldn't read field file");
+        file.read_to_string(&mut content)
+            .expect("couldn't read field file");
         field = content.parse().unwrap();
     }
 
@@ -327,7 +341,8 @@ fn main() {
     {
         let mut content = String::new();
         let mut file = File::open(pieces_filename).expect("couldn't open pieces file");
-        file.read_to_string(&mut content).expect("couldn't read pieces file");
+        file.read_to_string(&mut content)
+            .expect("couldn't read pieces file");
 
         let mut current = vec![];
         let mut id = 0u8;
@@ -359,7 +374,7 @@ fn main() {
 
     for piece in solution.pieces.iter() {
         println!("Pieces:");
-        println!("Piece {}", ('A' as u8 + piece.iter().nth(0).unwrap().id) as char);
+        println!("Piece {}", (b'A' + piece[0].id) as char);
         for p in piece.iter() {
             println!("{}\n", p);
         }
