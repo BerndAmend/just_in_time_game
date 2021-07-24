@@ -1,6 +1,5 @@
 use std::fmt;
-use std::fs::File;
-use std::io::prelude::*;
+use std::fs;
 use std::str::FromStr;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -328,21 +327,14 @@ fn main() {
 
     println!("field={} pieces={}", field_filename, pieces_filename);
 
-    let field: Field;
-    {
-        let mut content = String::new();
-        let mut file = File::open(field_filename).expect("couldn't open field file");
-        file.read_to_string(&mut content)
-            .expect("couldn't read field file");
-        field = content.parse().unwrap();
-    }
+    let field: Field = fs::read_to_string(field_filename)
+        .expect("couldn't read field file")
+        .parse()
+        .unwrap();
 
     let mut pieces: Vec<Piece> = vec![];
     {
-        let mut content = String::new();
-        let mut file = File::open(pieces_filename).expect("couldn't open pieces file");
-        file.read_to_string(&mut content)
-            .expect("couldn't read pieces file");
+        let content = fs::read_to_string(pieces_filename).expect("couldn't open pieces file");
 
         let mut current = vec![];
         let mut id = 0u8;
