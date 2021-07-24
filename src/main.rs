@@ -235,7 +235,7 @@ impl FromStr for Field {
                 result.field[line.0 * width + element.0] = match element.1 {
                     ' ' => FieldState::Blocked,
                     '-' => FieldState::Free(0),
-                    e @ '1'...'9' => FieldState::Free(e as u8 - b'1' + 1),
+                    e @ '1'..='9' => FieldState::Free(e as u8 - b'1' + 1),
                     _ => return Err("unexpected character"),
                 }
             }
